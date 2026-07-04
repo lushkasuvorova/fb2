@@ -123,6 +123,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.18.0"
+  open_with_app:
+    dependency: "direct main"
+    description:
+      name: open_with_app
+      sha256: "440c441859a849954266ff4a2728ca3ba5a4994252c50b32a0ea5416d4e5604c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
   path:
     dependency: transitive
     description:
@@ -131,6 +139,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
+  plugin_platform_interface:
+    dependency: transitive
+    description:
+      name: plugin_platform_interface
+      sha256: "4820fbfdb9478b1ebae27888254d445073732dae3d6ea81f0b7e06d5dedc3f02"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.8"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -202,4 +218,4 @@ packages:
     version: "15.2.0"
 sdks:
   dart: ">=3.12.2 <4.0.0"
-  flutter: ">=3.18.0-18.0.pre.54"
+  flutter: ">=3.44.0"
