@@ -26,7 +26,7 @@ class _MainAppState extends State<MainApp> {
     
      _controller = WebViewController()
     ..setJavaScriptMode(JavaScriptMode.unrestricted)
-    ..loadHtmlString(('<html><body><p>Выберите FB2 файл</p></body></html>'));
+    ..loadHtmlString('<html><body><p>Выберите FB2 файл</p></body></html>');
     
     _plugin.getInitialFile().then(_loadFile); // Холодный старт
     _plugin.getFileStream().listen(_loadFile); // Теплый старт
@@ -61,7 +61,9 @@ class _MainAppState extends State<MainApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        body: WebViewWidget(controller: _controller),
+        body: SafeArea( // ← оборачиваем в SafeArea
+        child: WebViewWidget(controller: _controller),
+        ),
       ),
     );
   }
