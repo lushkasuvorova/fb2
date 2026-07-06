@@ -46,6 +46,7 @@ class _MainAppState extends State<MainApp> {
       <style>
         body { font-size: 18px; padding: 10px; }
         p { margin-bottom: 1em; }
+        h1, h2, h3, h4 { margin-top: 1.5em; margin-bottom: 0.5em; }
       </style>
       <body>
         $allContent
