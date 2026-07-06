@@ -5,13 +5,11 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  
   runApp(const MainApp());
 }
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
-
   @override
   State<MainApp> createState() => _MainAppState();
 }
@@ -19,7 +17,6 @@ class MainApp extends StatefulWidget {
 class _MainAppState extends State<MainApp> {
   final _plugin = OpenWithApp();
   late final WebViewController _controller;
-  
   @override
   void initState() {
     super.initState();
@@ -41,6 +38,7 @@ class _MainAppState extends State<MainApp> {
       String allContent = '';
       for (var section in book.body.sections!) {
         allContent += section.content ?? '';
+        allContent += '<div style="height: 1px; background: #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 30px 0;"></div>';
       }
       String htmlContent = '''
       <style>
@@ -63,7 +61,7 @@ class _MainAppState extends State<MainApp> {
     return MaterialApp(
       home: Scaffold(
         body: SafeArea( // ← оборачиваем в SafeArea
-        child: WebViewWidget(controller: _controller),
+          child: WebViewWidget(controller: _controller),
         ),
       ),
     );
