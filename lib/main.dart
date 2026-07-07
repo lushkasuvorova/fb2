@@ -36,8 +36,12 @@ class _MainAppState extends State<MainApp> {
       await book.parse();
 
       String allContent = '';
+      int sectionCounter = 0;
       for (var section in book.body.sections!) {
+        sectionCounter++;
+        // debugPrint('Обработана секция №$sectionCounter');
         allContent += section.content ?? '';
+        allContent += '<div style="text-align: right; padding: 0 15px; white-space: nowrap;">$sectionCounter</div>';
         allContent += '<div style="height: 1px; background: #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 30px 0;"></div>';
       }
       String htmlContent = '''
