@@ -23,10 +23,24 @@ class _MainAppState extends State<MainApp> {
     
      _controller = WebViewController()
     ..setJavaScriptMode(JavaScriptMode.unrestricted)
+
+    ..setNavigationDelegate(NavigationDelegate(onPageFinished: (String url) {_injectLines();}))
+
     ..loadHtmlString('<html><body><p>Выберите FB2 файл</p></body></html>');
     
     _plugin.getInitialFile().then(_loadFile); // Холодный старт
     _plugin.getFileStream().listen(_loadFile); // Теплый старт
+  }
+
+  Future<void> _injectLines() async {
+    try {
+      final width = await _controller.runJavaScriptReturningResult('window.innerWidth');
+      final height = await _controller.runJavaScriptReturningResult('window.innerHeight');
+      if (width == 0 || height == 0) return;
+      debugPrint('Ширина: $width, Высота: $height');
+    } catch (e) {
+      debugPrint('Ошибка: $e');
+    }
   }
 
   Future<void> _loadFile(String? path) async {
@@ -36,13 +50,8 @@ class _MainAppState extends State<MainApp> {
       await book.parse();
 
       String allContent = '';
-      int sectionCounter = 0;
       for (var section in book.body.sections!) {
-        sectionCounter++;
-        // debugPrint('Обработана секция №$sectionCounter');
         allContent += section.content ?? '';
-        allContent += '<div style="text-align: right; padding: 0 15px; white-space: nowrap;">$sectionCounter</div>';
-        allContent += '<div style="height: 1px; background: #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 30px 0;"></div>';
       }
       String htmlContent = '''
       <style>
