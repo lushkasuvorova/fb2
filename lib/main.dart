@@ -37,7 +37,6 @@ class _MainAppState extends State<MainApp> {
     final scrollY = double.tryParse(message.message) ?? 0;
 
     if (_currentFilePath != null) {
-      debugPrint("Получен scroll: $scrollY");
       _saveProgress(scrollY, _currentFilePath!);
     }
   },
@@ -73,7 +72,6 @@ class _MainAppState extends State<MainApp> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble('${_progressKey}_$filePath', scrollPosition);
       await prefs.setString(_lastFileKey, filePath);
-      debugPrint('📖 Прогресс сохранен: $scrollPosition px');
     } catch (e) {
       debugPrint('Ошибка сохранения прогресса: $e');
     }
@@ -107,7 +105,6 @@ class _MainAppState extends State<MainApp> {
     try {
       final savedPosition = await _getSavedProgress(_currentFilePath!);
       if (savedPosition != null && savedPosition > 0) {
-        debugPrint('📍 Восстанавливаем позицию: $savedPosition px');
         
         await _controller.runJavaScript('''
           window.scrollTo(0, $savedPosition);
@@ -121,7 +118,6 @@ class _MainAppState extends State<MainApp> {
   // ========== СОХРАНЕНИЕ ПРИ СКРОЛЛЕ ==========
   
   Future<void> _setupScrollSave() async {
-  debugPrint("JS обработчик установлен");
 
   try {
     await _controller.runJavaScript('''
@@ -171,9 +167,7 @@ class _MainAppState extends State<MainApp> {
       );
 
     ''');
-
-    debugPrint("JS успешно внедрён");
-
+    
   } catch (e) {
     debugPrint("Ошибка JS: $e");
   }
