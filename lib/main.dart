@@ -31,6 +31,17 @@ class _MainAppState extends State<MainApp> {
     
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..addJavaScriptChannel(
+  'flutterSaveProgress',
+  onMessageReceived: (JavaScriptMessage message) {
+    final scrollY = double.tryParse(message.message) ?? 0;
+
+    if (_currentFilePath != null) {
+      debugPrint("Получен scroll: $scrollY");
+      _saveProgress(scrollY, _currentFilePath!);
+    }
+  },
+)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (String url) {
@@ -45,13 +56,15 @@ class _MainAppState extends State<MainApp> {
   }
 
   Future<void> _onPageLoaded() async {
-    await _injectLines();
-    
-    if (_isFirstLoad && _currentFilePath != null) {
-      _isFirstLoad = false;
-      await _restorePosition();
-    }
+  await _setupScrollSave();
+
+  await _injectLines();
+
+  if (_isFirstLoad && _currentFilePath != null) {
+    _isFirstLoad = false;
+    await _restorePosition();
   }
+}
 
   // ========== СОХРАНЕНИЕ ПРОГРЕССА ==========
   
@@ -108,38 +121,63 @@ class _MainAppState extends State<MainApp> {
   // ========== СОХРАНЕНИЕ ПРИ СКРОЛЛЕ ==========
   
   Future<void> _setupScrollSave() async {
+  debugPrint("JS обработчик установлен");
+
+  try {
     await _controller.runJavaScript('''
       let saveTimeout;
       let lastSavedPosition = -1;
-      
-      window.addEventListener('scroll', function() {
+
+      function sendScrollPosition() {
         clearTimeout(saveTimeout);
-        
+
         saveTimeout = setTimeout(function() {
-          const scrollY = window.scrollY;
-          const scrollHeight = document.documentElement.scrollHeight;
-          
-          // Сохраняем если:
-          // 1. Прочитано больше 5%
-          // 2. Позиция изменилась существенно (больше 50px)
-          if (scrollY / scrollHeight > 0.05 && Math.abs(scrollY - lastSavedPosition) > 50) {
-            window.flutterSaveProgress(scrollY);
+
+          let scrollY = 
+              window.scrollY ||
+              document.documentElement.scrollTop ||
+              document.body.scrollTop ||
+              0;
+
+          if (Math.abs(scrollY - lastSavedPosition) > 100) {
+
+            flutterSaveProgress.postMessage(
+              scrollY.toString()
+            );
+
             lastSavedPosition = scrollY;
           }
-        }, 500);
-      });
+
+        }, 1000);
+      }
+
+
+      window.addEventListener(
+        'scroll',
+        sendScrollPosition,
+        true
+      );
+
+      document.addEventListener(
+        'scroll',
+        sendScrollPosition,
+        true
+      );
+
+      document.body.addEventListener(
+        'scroll',
+        sendScrollPosition,
+        true
+      );
+
     ''');
-    
-    _controller.addJavaScriptChannel(
-      'flutterSaveProgress',
-      onMessageReceived: (JavaScriptMessage message) {
-        final scrollY = double.tryParse(message.message) ?? 0;
-        if (_currentFilePath != null) {
-          _saveProgress(scrollY, _currentFilePath!);
-        }
-      },
-    );
+
+    debugPrint("JS успешно внедрён");
+
+  } catch (e) {
+    debugPrint("Ошибка JS: $e");
   }
+}
 
   // ========== ЗАГРУЗКА ФАЙЛА ==========
   
@@ -174,7 +212,7 @@ class _MainAppState extends State<MainApp> {
       ''';
       
       await _controller.loadHtmlString(htmlContent);
-      await _setupScrollSave();
+      
       
     } catch (e) {
       _controller.loadHtmlString('<html><body><p>Ошибка: $e</p></body></html>');
