@@ -50,7 +50,21 @@ class _MainAppState extends State<MainApp> {
       )
       ..loadHtmlString('<html><body><p>Выберите FB2 файл</p></body></html>');
     
-    _plugin.getInitialFile().then(_loadFile);
+    //_plugin.getInitialFile().then(_loadFile);
+    _plugin.getInitialFile().then((path) async {
+
+    if (path != null) {
+      await _loadFile(path);
+    } 
+    else {
+      final lastFile = await _getLastFile();
+
+      if (lastFile != null) {
+        await _loadFile(lastFile);
+      }
+    }
+
+    });
     _plugin.getFileStream().listen(_loadFile);
   }
 
