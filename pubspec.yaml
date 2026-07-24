@@ -12,6 +12,7 @@ dependencies:
   open_with_app: ^0.2.0
   fb2_parse: ^1.0.1
   webview_flutter: ^4.7.0
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:
