@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_with_app/open_with_app.dart';
-import 'package:fb2_parse/fb2_parse.dart';
+import 'package:xml/xml.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -202,23 +202,30 @@ class _MainAppState extends State<MainApp> {
     try {
       debugPrint('Загружаем файл: $path');
       
-      FB2Book book = FB2Book(path);
-      await book.parse();
+      final xmlText = await File(path).readAsString();
+      final document = XmlDocument.parse(xmlText);
+      final body = document.findAllElements('body').first;
+      final paragraphs = body.findAllElements('p');
+      StringBuffer html = StringBuffer();
 
-      String allContent = '';
-      for (var section in book.body.sections!) {
-        allContent += section.content ?? '';
+      for (final p in paragraphs) {
+        html.writeln("<p>${p.innerText}</p>");
       }
-      
+            
       String htmlContent = '''
+      <html>
+      <head>
+      <meta charset="utf-8">
       <style>
         body { font-size: 18px; padding: 10px; }
         p { margin-bottom: 1em; }
         h1, h2, h3, h4 { margin-top: 1.5em; margin-bottom: 0.5em; }
       </style>
+      </head>
       <body>
-        $allContent
+        ${html.toString()}
       </body>
+      </html>
       ''';
       
       await _controller.loadHtmlString(htmlContent);
