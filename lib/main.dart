@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_with_app/open_with_app.dart';
 import 'package:fb2_parse/fb2_parse.dart';
@@ -32,15 +33,15 @@ class _MainAppState extends State<MainApp> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..addJavaScriptChannel(
-  'flutterSaveProgress',
-  onMessageReceived: (JavaScriptMessage message) {
-    final scrollY = double.tryParse(message.message) ?? 0;
+        'flutterSaveProgress',
+        onMessageReceived: (JavaScriptMessage message) {
+          final scrollY = double.tryParse(message.message) ?? 0;
 
-    if (_currentFilePath != null) {
-      _saveProgress(scrollY, _currentFilePath!);
-    }
-  },
-)
+          if (_currentFilePath != null) {
+            _saveProgress(scrollY, _currentFilePath!);
+          }
+        },
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (String url) {
@@ -50,34 +51,35 @@ class _MainAppState extends State<MainApp> {
       )
       ..loadHtmlString('<html><body><p>Выберите FB2 файл</p></body></html>');
     
-    //_plugin.getInitialFile().then(_loadFile);
     _plugin.getInitialFile().then((path) async {
 
-    if (path != null) {
-      await _loadFile(path);
-    } 
-    else {
-      final lastFile = await _getLastFile();
+      if (path != null) {
+        await _loadFile(path);
+      } 
 
-      if (lastFile != null) {
-        await _loadFile(lastFile);
+      else {
+        final lastFile = await _getLastFile();
+
+        if (lastFile != null && File(lastFile).existsSync()) {
+          await _loadFile(lastFile);
+        }
       }
-    }
 
     });
+
     _plugin.getFileStream().listen(_loadFile);
   }
 
   Future<void> _onPageLoaded() async {
-  await _setupScrollSave();
+    await _setupScrollSave();
 
-  await _injectLines();
+    await _injectLines();
 
-  if (_isFirstLoad && _currentFilePath != null) {
-    _isFirstLoad = false;
-    await _restorePosition();
+    if (_isFirstLoad && _currentFilePath != null) {
+      _isFirstLoad = false;
+      await _restorePosition();
+    }
   }
-}
 
   // ========== СОХРАНЕНИЕ ПРОГРЕССА ==========
   
