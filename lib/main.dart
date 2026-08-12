@@ -228,6 +228,9 @@ class _MainAppState extends State<MainApp> {
           case 'p':
             return '<p>${node.children.map(parseNode).join()}</p>';
 
+          case 'text-author':
+            return '<p>${node.children.map(parseNode).join()}</p>';
+
           case 'strong':
             return '<b>${node.children.map(parseNode).join()}</b>';
 
