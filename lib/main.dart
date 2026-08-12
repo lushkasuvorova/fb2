@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:fb2/js/scroll_save.dart';
 import 'package:flutter/material.dart';
 import 'package:open_with_app/open_with_app.dart';
 import 'parsers/fb2_parser.dart';
@@ -143,59 +144,12 @@ class _MainAppState extends State<MainApp> {
   
   Future<void> _setupScrollSave() async {
 
-  try {
-    await _controller.runJavaScript('''
-      let saveTimeout;
-      let lastSavedPosition = -1;
-
-      function sendScrollPosition() {
-        clearTimeout(saveTimeout);
-
-        saveTimeout = setTimeout(function() {
-
-          let scrollY = 
-              window.scrollY ||
-              document.documentElement.scrollTop ||
-              document.body.scrollTop ||
-              0;
-
-          if (Math.abs(scrollY - lastSavedPosition) > 100) {
-
-            flutterSaveProgress.postMessage(
-              scrollY.toString()
-            );
-
-            lastSavedPosition = scrollY;
-          }
-
-        }, 1000);
-      }
-
-
-      window.addEventListener(
-        'scroll',
-        sendScrollPosition,
-        true
-      );
-
-      document.addEventListener(
-        'scroll',
-        sendScrollPosition,
-        true
-      );
-
-      document.body.addEventListener(
-        'scroll',
-        sendScrollPosition,
-        true
-      );
-
-    ''');
-    
-  } catch (e) {
-    debugPrint("Ошибка JS: $e");
+    try {
+      await _controller.runJavaScript(scrollSaveScript);
+    } catch (e) {
+      debugPrint("Ошибка JS: $e");
+    }
   }
-}
 
   // ========== ЗАГРУЗКА ФАЙЛА ==========
   
