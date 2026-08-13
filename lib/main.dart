@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:fb2/js/scroll_save.dart';
 import 'package:flutter/material.dart';
 import 'package:open_with_app/open_with_app.dart';
-import 'package:fb2_parse/fb2_parse.dart';
+import 'parsers/fb2_parser.dart';
+import 'inject_lines/inject_lines.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -19,6 +21,8 @@ class MainApp extends StatefulWidget {
 class _MainAppState extends State<MainApp> {
   final _plugin = OpenWithApp();
   late final WebViewController _controller;
+  final _parser = Fb2Parser();
+  final _injectLines = InjectLines();
   
   static const String _progressKey = 'reading_progress';
   static const String _lastFileKey = 'last_file_path';
@@ -73,7 +77,12 @@ class _MainAppState extends State<MainApp> {
   Future<void> _onPageLoaded() async {
     await _setupScrollSave();
 
-    await _injectLines();
+  // ========== ДОБАВЛЕНИЕ ЛИНИЙ ==========
+    final width = await _controller.runJavaScriptReturningResult('window.innerWidth');
+    final height = await _controller.runJavaScriptReturningResult('window.innerHeight');
+    final contentHeight = await _controller.runJavaScriptReturningResult('document.documentElement.scrollHeight');
+    final lines = await _injectLines.injectLines(width, height, contentHeight);
+    await _controller.runJavaScript(lines);
 
     if (_isFirstLoad && _currentFilePath != null) {
       _isFirstLoad = false;
@@ -135,59 +144,12 @@ class _MainAppState extends State<MainApp> {
   
   Future<void> _setupScrollSave() async {
 
-  try {
-    await _controller.runJavaScript('''
-      let saveTimeout;
-      let lastSavedPosition = -1;
-
-      function sendScrollPosition() {
-        clearTimeout(saveTimeout);
-
-        saveTimeout = setTimeout(function() {
-
-          let scrollY = 
-              window.scrollY ||
-              document.documentElement.scrollTop ||
-              document.body.scrollTop ||
-              0;
-
-          if (Math.abs(scrollY - lastSavedPosition) > 100) {
-
-            flutterSaveProgress.postMessage(
-              scrollY.toString()
-            );
-
-            lastSavedPosition = scrollY;
-          }
-
-        }, 1000);
-      }
-
-
-      window.addEventListener(
-        'scroll',
-        sendScrollPosition,
-        true
-      );
-
-      document.addEventListener(
-        'scroll',
-        sendScrollPosition,
-        true
-      );
-
-      document.body.addEventListener(
-        'scroll',
-        sendScrollPosition,
-        true
-      );
-
-    ''');
-    
-  } catch (e) {
-    debugPrint("Ошибка JS: $e");
+    try {
+      await _controller.runJavaScript(scrollSaveScript);
+    } catch (e) {
+      debugPrint("Ошибка JS: $e");
+    }
   }
-}
 
   // ========== ЗАГРУЗКА ФАЙЛА ==========
   
@@ -202,130 +164,16 @@ class _MainAppState extends State<MainApp> {
     try {
       debugPrint('Загружаем файл: $path');
       
-      FB2Book book = FB2Book(path);
-      await book.parse();
-
-      String allContent = '';
-      for (var section in book.body.sections!) {
-        allContent += section.content ?? '';
-      }
-      
-      String htmlContent = '''
-      <style>
-        body { font-size: 18px; padding: 10px; }
-        p { margin-bottom: 1em; }
-        h1, h2, h3, h4 { margin-top: 1.5em; margin-bottom: 0.5em; }
-      </style>
-      <body>
-        $allContent
-      </body>
-      ''';
-      
+      final xmlText = await File(path).readAsString();
+      final htmlContent = await _parser.parse(xmlText);
       await _controller.loadHtmlString(htmlContent);
-      
       
     } catch (e) {
       _controller.loadHtmlString('<html><body><p>Ошибка: $e</p></body></html>');
     }
   }
 
-  // ========== ДОБАВЛЕНИЕ ЛИНИЙ ==========
-  
-  Future<void> _injectLines() async {
-    try {
-      final width = await _controller.runJavaScriptReturningResult('window.innerWidth');
-      final height = await _controller.runJavaScriptReturningResult('window.innerHeight');
-      final contentHeight = await _controller.runJavaScriptReturningResult('document.documentElement.scrollHeight');
 
-      final double windowWidth = double.parse(width.toString());
-      final double windowHeight = double.parse(height.toString());
-      final double totalHeight = double.parse(contentHeight.toString());
-      
-      if (windowWidth == 0 || windowHeight == 0) return;
-
-      debugPrint('Ширина: $windowWidth, Высота: $windowHeight');
-      debugPrint('Общая высота контента: $totalHeight');
-
-      double currentHeight = 0;
-      final List<Map<String, dynamic>> linesData = [];
-      int lineNumber = 0;
-
-      while (currentHeight < totalHeight) {
-        currentHeight += windowHeight;
-        if (currentHeight > totalHeight) currentHeight = totalHeight;
-        linesData.add({
-          'position': currentHeight,
-          'number': ++lineNumber,
-        });
-      }
-
-      final StringBuffer jsCode = StringBuffer();
-      jsCode.writeln('''
-        (function() {
-          const oldContainer = document.getElementById('lines-container');
-          if (oldContainer) oldContainer.remove();
-          
-          const container = document.createElement('div');
-          container.id = 'lines-container';
-          container.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; z-index: 9999;';
-      ''');
-      
-      for (var data in linesData) {
-        jsCode.writeln('''
-          (() => {
-            const line = document.createElement('div');
-            line.style.cssText = 'position: absolute; top: ${data['position']}px; left: 0; width: 100%; height: 2px; background-color: rgba(255, 0, 0, 0.5); pointer-events: none; z-index: 9999;';
-            
-            const label = document.createElement('span');
-            label.style.cssText = 'position: absolute; right: 10px; top: -10px; background: rgba(255, 0, 0, 0.7); color: white; padding: 2px 6px; font-size: 12px; font-family: Arial; border-radius: 3px;';
-            label.textContent = '${data['number']}';
-            
-            line.appendChild(label);
-            container.appendChild(line);
-          })();
-        ''');
-      }
-      
-      jsCode.writeln('''
-          document.body.appendChild(container);
-        })();
-      ''');
-      
-      await _controller.runJavaScript(jsCode.toString());
-      debugPrint('Добавлено линий: ${linesData.length}');
-      
-    } catch (e) {
-      debugPrint('Ошибка инъекции линий: $e');
-    }
-  }
-
-  // ========== СОХРАНЕНИЕ ПРИ ВЫХОДЕ ==========
-  
-  @override
-  void dispose() {
-    _savePositionOnExit();
-    super.dispose();
-  }
-
-  Future<void> _savePositionOnExit() async {
-    if (_currentFilePath == null) return;
-    
-    try {
-      final scrollY = await _controller.runJavaScriptReturningResult('''
-        (function() {
-          return window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
-        })();
-      ''');
-      
-      
-      final position = double.parse(scrollY.toString());
-      await _saveProgress(position, _currentFilePath!);
-      debugPrint('💾 Прогресс сохранен при выходе: $position px');
-      
-    } catch (e) {
-      debugPrint('Ошибка сохранения при выходе: $e');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
