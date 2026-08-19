@@ -6,6 +6,7 @@ import 'parsers/fb2_parser.dart';
 import 'inject_lines/inject_lines.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +30,7 @@ class _MainAppState extends State<MainApp> {
   
   String? _currentFilePath;
   bool _isFirstLoad = true;
+  bool _hasBook = false;
 
   @override
   void initState() {
@@ -52,8 +54,7 @@ class _MainAppState extends State<MainApp> {
             _onPageLoaded();
           },
         ),
-      )
-      ..loadHtmlString('<html><body><p>Выберите FB2 файл</p></body></html>');
+      );
     
     _plugin.getInitialFile().then((path) async {
 
@@ -159,6 +160,7 @@ class _MainAppState extends State<MainApp> {
     setState(() {
       _currentFilePath = path;
       _isFirstLoad = true;
+      _hasBook = true;
     });
     
     try {
@@ -172,7 +174,25 @@ class _MainAppState extends State<MainApp> {
       _controller.loadHtmlString('<html><body><p>Ошибка: $e</p></body></html>');
     }
   }
+// ========== ВЫБОР ФАЙЛА ==========   
 
+Future<void> _pickFb2() async {
+    
+ final result = await FilePicker.platform.pickFiles(       
+  type: FileType.custom,       
+  allowedExtensions: ['fb2'],     
+ );
+    
+ if (result == null) {       
+  return;     
+ }
+    
+ final path = result.files.single.path;     
+ if (path != null) {       
+  await _loadFile(path);     
+ }
+  
+}
 
 
   @override
@@ -180,7 +200,16 @@ class _MainAppState extends State<MainApp> {
     return MaterialApp(
       home: Scaffold(
         body: SafeArea(
-          child: WebViewWidget(controller: _controller),
+          child: _hasBook
+            ? WebViewWidget(
+                controller: _controller,
+              )
+            : Center(
+                child: ElevatedButton(
+                  onPressed: _pickFb2,
+                  child: const Text('Выбрать FB2'),
+                ),
+              ),
         ),
       ),
     );
