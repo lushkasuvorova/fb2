@@ -96,7 +96,8 @@ class _MainAppState extends State<MainApp> {
   Future<void> _saveProgress(double scrollPosition, String filePath) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble('${_progressKey}_$filePath', scrollPosition);
+      await prefs.setDouble(_getProgressKey(filePath), scrollPosition);
+      //await prefs.setDouble('${_progressKey}_$filePath', scrollPosition);
       await prefs.setString(_lastFileKey, filePath);
     } catch (e) {
       debugPrint('Ошибка сохранения прогресса: $e');
@@ -106,11 +107,15 @@ class _MainAppState extends State<MainApp> {
   Future<double?> _getSavedProgress(String filePath) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getDouble('${_progressKey}_$filePath');
+      return prefs.getDouble(_getProgressKey(filePath));
     } catch (e) {
       debugPrint('Ошибка получения прогресса: $e');
       return null;
     }
+  }
+
+  String _getProgressKey(String filePath) {
+    return '${_progressKey}_${File(filePath).uri.pathSegments.last}';
   }
 
   Future<String?> _getLastFile() async {
@@ -126,10 +131,12 @@ class _MainAppState extends State<MainApp> {
   // ========== ВОССТАНОВЛЕНИЕ ПОЗИЦИИ ==========
   
   Future<void> _restorePosition() async {
+
     if (_currentFilePath == null) return;
     
     try {
       final savedPosition = await _getSavedProgress(_currentFilePath!);
+
       if (savedPosition != null && savedPosition > 0) {
         
         await _controller.runJavaScript('''
@@ -178,19 +185,19 @@ class _MainAppState extends State<MainApp> {
 
 Future<void> _pickFb2() async {
     
- final result = await FilePicker.platform.pickFiles(       
-  type: FileType.custom,       
-  allowedExtensions: ['fb2'],     
- );
+  final result = await FilePicker.platform.pickFiles(       
+    type: FileType.custom,       
+    allowedExtensions: ['fb2'],     
+  );
     
- if (result == null) {       
-  return;     
- }
+  if (result == null) {       
+    return;     
+  }
     
- final path = result.files.single.path;     
- if (path != null) {       
-  await _loadFile(path);     
- }
+  final path = result.files.single.path;     
+  if (path != null) {       
+    await _loadFile(path);     
+  }
   
 }
 
@@ -199,17 +206,27 @@ Future<void> _pickFb2() async {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        body: SafeArea(
-          child: _hasBook
-            ? WebViewWidget(
+        body: PopScope(
+          canPop: !_hasBook,
+          onPopInvokedWithResult: (didPop, result) {
+            if (_hasBook) {
+              setState(() {
+                _hasBook = false;
+              });
+            }
+          },
+          child: SafeArea(
+            child: _hasBook
+              ? WebViewWidget(
                 controller: _controller,
               )
-            : Center(
+              : Center(
                 child: ElevatedButton(
                   onPressed: _pickFb2,
                   child: const Text('Выбрать FB2'),
                 ),
               ),
+          ),
         ),
       ),
     );
