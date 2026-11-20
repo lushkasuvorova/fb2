@@ -5,10 +5,8 @@ class ReadingStorage {
   static const String _progressPrefix = 'reading_progress';
   static const String _lastFileKey = 'last_file_path';
 
-  // Поле для хранения кэша
   SharedPreferences? _prefs;
 
-  // Геттер: если _prefs уже есть — возвращает его сразу, если нет — получает один раз
   Future<SharedPreferences> get _storage async {
     return _prefs ??= await SharedPreferences.getInstance();
   }

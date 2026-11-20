@@ -68,6 +68,7 @@ class _MainAppState extends State<MainApp> {
           await _loadFile(lastFile);
         }
       }
+
     });
 
     _fileSubscription = _plugin.getFileStream().listen(_loadFile);
@@ -82,7 +83,8 @@ class _MainAppState extends State<MainApp> {
   Future<void> _onPageLoaded() async {
     await _setupScrollSave();
 
-  // ========== ДОБАВЛЕНИЕ ЛИНИЙ ==========
+    // ========== ДОБАВЛЕНИЕ ЛИНИЙ ==========
+
     final [width, height, contentHeight] = await Future.wait([
       _controller.runJavaScriptReturningResult('window.innerWidth'),
       _controller.runJavaScriptReturningResult('window.innerHeight'),
@@ -145,25 +147,26 @@ class _MainAppState extends State<MainApp> {
       _controller.loadHtmlString('<html><body><p>Ошибка: $e</p></body></html>');
     }
   }
-// ========== ВЫБОР ФАЙЛА ==========   
 
-Future<void> _pickFb2() async {
+  // ========== ВЫБОР ФАЙЛА ==========   
+
+  Future<void> _pickFb2() async {
+      
+    final result = await FilePicker.platform.pickFiles(       
+      type: FileType.custom,       
+      allowedExtensions: ['fb2'],     
+    );
+      
+    if (result == null) {       
+      return;     
+    }
+      
+    final path = result.files.single.path;     
+    if (path != null) {       
+      await _loadFile(path);     
+    }
     
-  final result = await FilePicker.platform.pickFiles(       
-    type: FileType.custom,       
-    allowedExtensions: ['fb2'],     
-  );
-    
-  if (result == null) {       
-    return;     
   }
-    
-  final path = result.files.single.path;     
-  if (path != null) {       
-    await _loadFile(path);     
-  }
-  
-}
 
 
   @override
