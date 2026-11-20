@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:fb2/js/scroll_save.dart';
 import 'package:flutter/material.dart';
 import 'package:open_with_app/open_with_app.dart';
@@ -22,6 +23,7 @@ class MainApp extends StatefulWidget {
 class _MainAppState extends State<MainApp> {
   final _plugin = OpenWithApp();
   late final WebViewController _controller;
+  StreamSubscription<String?>? _fileSubscription;
   final _parser = Fb2Parser();
   final _injectLines = InjectLines();
   final _storage = ReadingStorage();
@@ -40,7 +42,6 @@ class _MainAppState extends State<MainApp> {
         'flutterSaveProgress',
         onMessageReceived: (JavaScriptMessage message) {
           final scrollY = double.tryParse(message.message) ?? 0;
-
           if (_currentFilePath != null) {
             _storage.saveProgress(scrollY, _currentFilePath!);
           }
@@ -58,7 +59,7 @@ class _MainAppState extends State<MainApp> {
 
       if (path != null) {
         await _loadFile(path);
-      } 
+      }
 
       else {
         final lastFile = await _storage.getLastFile();
@@ -67,10 +68,15 @@ class _MainAppState extends State<MainApp> {
           await _loadFile(lastFile);
         }
       }
-
     });
 
-    _plugin.getFileStream().listen(_loadFile);
+    _fileSubscription = _plugin.getFileStream().listen(_loadFile);
+  }
+
+  @override
+  void dispose() {
+    _fileSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _onPageLoaded() async {
