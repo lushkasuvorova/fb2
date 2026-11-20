@@ -83,7 +83,9 @@ class Fb2Parser {
       <head>
       <meta charset="utf-8">
       <style>
-        body { font-size: 18px; padding: 10px; }
+        body { max-width: 100%; overflow-x: hidden; 
+                font-size: 18px; padding: 10px;
+                overflow-wrap: anywhere; word-wrap: break-word; word-break: normal; hyphens: auto; }
         p { margin-bottom: 1em; }
         h1, h2, h3, h4 { margin-top: 1.5em; margin-bottom: 0.5em; }
         blockquote { color: gray; }
