@@ -5,7 +5,7 @@ import 'package:open_with_app/open_with_app.dart';
 import 'parsers/fb2_parser.dart';
 import 'inject_lines/inject_lines.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'services/reading_storage.dart';
 import 'package:file_picker/file_picker.dart';
 
 void main() {
@@ -24,9 +24,7 @@ class _MainAppState extends State<MainApp> {
   late final WebViewController _controller;
   final _parser = Fb2Parser();
   final _injectLines = InjectLines();
-  
-  static const String _progressKey = 'reading_progress';
-  static const String _lastFileKey = 'last_file_path';
+  final _storage = ReadingStorage();
   
   String? _currentFilePath;
   bool _isFirstLoad = true;
@@ -44,7 +42,7 @@ class _MainAppState extends State<MainApp> {
           final scrollY = double.tryParse(message.message) ?? 0;
 
           if (_currentFilePath != null) {
-            _saveProgress(scrollY, _currentFilePath!);
+            _storage.saveProgress(scrollY, _currentFilePath!);
           }
         },
       )
@@ -63,7 +61,7 @@ class _MainAppState extends State<MainApp> {
       } 
 
       else {
-        final lastFile = await _getLastFile();
+        final lastFile = await _storage.getLastFile();
 
         if (lastFile != null && File(lastFile).existsSync()) {
           await _loadFile(lastFile);
@@ -93,54 +91,13 @@ class _MainAppState extends State<MainApp> {
     }
   }
 
-  // ========== СОХРАНЕНИЕ ПРОГРЕССА ==========
-  
-  Future<void> _saveProgress(double scrollPosition, String filePath) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble(_getProgressKey(filePath), scrollPosition);
-      //await prefs.setDouble('${_progressKey}_$filePath', scrollPosition);
-      await prefs.setString(_lastFileKey, filePath);
-    } catch (e) {
-      debugPrint('Ошибка сохранения прогресса: $e');
-    }
-  }
-
-  Future<double?> _getSavedProgress(String filePath) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getDouble(_getProgressKey(filePath));
-    } catch (e) {
-      debugPrint('Ошибка получения прогресса: $e');
-      return null;
-    }
-  }
-
-  String _getProgressKey(String filePath) {
-    return '${_progressKey}_${File(filePath).uri.pathSegments.last}';
-  }
-
-  Future<String?> _getLastFile() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_lastFileKey);
-    } catch (e) {
-      debugPrint('Ошибка получения последнего файла: $e');
-      return null;
-    }
-  }
-
   // ========== ВОССТАНОВЛЕНИЕ ПОЗИЦИИ ==========
   
   Future<void> _restorePosition() async {
-
     if (_currentFilePath == null) return;
-    
     try {
-      final savedPosition = await _getSavedProgress(_currentFilePath!);
-
+      final savedPosition = await _storage.getSavedProgress(_currentFilePath!);
       if (savedPosition != null && savedPosition > 0) {
-        
         await _controller.runJavaScript('''
           window.scrollTo(0, $savedPosition);
         ''');
@@ -153,7 +110,6 @@ class _MainAppState extends State<MainApp> {
   // ========== СОХРАНЕНИЕ ПРИ СКРОЛЛЕ ==========
   
   Future<void> _setupScrollSave() async {
-
     try {
       await _controller.runJavaScript(scrollSaveScript);
     } catch (e) {
