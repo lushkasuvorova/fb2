@@ -5,6 +5,28 @@ class Fb2Parser {
   Future<String> parse(String xmlText) async {
 
     final document = XmlDocument.parse(xmlText);
+
+    // картинки
+    final Map<String, String> images = {};
+    for (final binary in document.findAllElements('binary')) {
+      final id = binary.getAttribute('id');
+      if (id != null) {
+        final contentType = binary.getAttribute('content-type') ?? 'image/jpeg';
+        final base64Data = binary.innerText.replaceAll(RegExp(r'\s+'), '');
+        images[id] = 'data:$contentType;base64,$base64Data';
+      }
+    }
+
+    // обложка
+    String coverHtml = '';
+    final coverElement = document.findAllElements('coverpage').firstOrNull;
+    if (coverElement != null) {
+      final coverImg = coverElement.findAllElements('image').firstOrNull;
+      if (coverImg != null) {
+        coverHtml = _buildImageTag(coverImg, images);
+      }
+    }
+
     final body = document.findAllElements('body').first;
 
     String parseNode(XmlNode node) {
@@ -71,6 +93,12 @@ class Fb2Parser {
         case 'v':
           return '${node.innerText}<br>';
 
+        case 'empty-line':
+          return '<br>';
+
+        case 'image':
+          return _buildImageTag(node, images);
+
         default:
           return node.children.map(parseNode).join();
       }
@@ -82,6 +110,7 @@ class Fb2Parser {
       <html>
       <head>
       <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
         body { max-width: 100%; overflow-x: hidden; 
                 font-size: 18px; padding: 10px;
@@ -91,13 +120,30 @@ class Fb2Parser {
         blockquote { color: gray; }
         .poem { margin-left: 20px; }
         .stanza { margin-bottom: 1em; }
+        img, svg, table { max-width: 100%; height: auto; display: block; margin: 1em auto; } 
       </style>
       </head>
       <body>
+        $coverHtml
         ${html.toString()}
       </body>
       </html>
       ''';
      
+  }
+
+  String _buildImageTag(XmlElement node, Map<String, String> images) {
+    final hrefAttr = node.attributes
+        .where((attr) => attr.name.local == 'href')
+        .firstOrNull;
+
+    if (hrefAttr == null) return '';
+
+    final imageId = hrefAttr.value.replaceFirst('#', '');
+    final dataUri = images[imageId];
+
+    if (dataUri == null) return '';
+
+    return '<img src="$dataUri" alt="" />';
   }
 }
