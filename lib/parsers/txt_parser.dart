@@ -14,29 +14,15 @@ class TxtParser {
         .join('\n');
 
     return '''
-      <html lang="ru">
+      <html>
       <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
-        html, body { 
-          max-width: 100%; 
-          overflow-x: hidden; 
-          margin: 0;
-          box-sizing: border-box;
-        }
-        body { 
-          font-size: 18px; 
-          padding: 10px;
-          overflow-wrap: anywhere; 
-          word-wrap: break-word; 
-          word-break: normal; 
-          hyphens: auto; 
-        }
-        p { 
-          margin-bottom: 1em; 
-          text-indent: 1.5em; /* Красная строка, как в обычной книге */
-        }
+        body { max-width: 100%; overflow-x: hidden; 
+                font-size: 18px; padding: 10px;
+                overflow-wrap: anywhere; word-wrap: break-word; word-break: normal; hyphens: auto; }
+        p { margin-bottom: 1em; }
       </style>
       </head>
       <body>
