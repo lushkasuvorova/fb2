@@ -79,9 +79,11 @@ class _MainAppState extends State<MainApp> {
     await _setupScrollSave();
 
   // ========== ДОБАВЛЕНИЕ ЛИНИЙ ==========
-    final width = await _controller.runJavaScriptReturningResult('window.innerWidth');
-    final height = await _controller.runJavaScriptReturningResult('window.innerHeight');
-    final contentHeight = await _controller.runJavaScriptReturningResult('document.documentElement.scrollHeight');
+    final [width, height, contentHeight] = await Future.wait([
+      _controller.runJavaScriptReturningResult('window.innerWidth'),
+      _controller.runJavaScriptReturningResult('window.innerHeight'),
+      _controller.runJavaScriptReturningResult('document.documentElement.scrollHeight'),
+    ]);
     final lines = await _injectLines.injectLines(width, height, contentHeight);
     await _controller.runJavaScript(lines);
 
