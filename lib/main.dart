@@ -4,6 +4,7 @@ import 'package:fb2/js/scroll_save.dart';
 import 'package:flutter/material.dart';
 import 'package:open_with_app/open_with_app.dart';
 import 'parsers/fb2_parser.dart';
+import 'parsers/txt_parser.dart';
 import 'inject_lines/inject_lines.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'services/reading_storage.dart';
@@ -24,7 +25,8 @@ class _MainAppState extends State<MainApp> {
   final _plugin = OpenWithApp();
   late final WebViewController _controller;
   StreamSubscription<String?>? _fileSubscription;
-  final _parser = Fb2Parser();
+  final _fb2Parser = Fb2Parser();
+  final _txtParser = TxtParser();
   final _injectLines = InjectLines();
   final _storage = ReadingStorage();
   
@@ -139,8 +141,19 @@ class _MainAppState extends State<MainApp> {
     try {
       debugPrint('Загружаем файл: $path');
       
-      final xmlText = await File(path).readAsString();
-      final htmlContent = await _parser.parse(xmlText);
+      final rawText = await File(path).readAsString();
+      if (rawText.contains('\u0000')) {
+        throw Exception('Файл является бинарным и не содержит читаемого текста');
+      }
+      final trimmed = rawText.trimLeft();
+
+      // Если файл начинается с XML-объявления или корневого тега FB2 — парсим как FB2
+      final isFb2 = trimmed.startsWith('<?xml') || trimmed.contains('<FictionBook');
+      
+      final htmlContent = isFb2
+          ? await _fb2Parser.parse(rawText)
+          : await _txtParser.parse(rawText);
+
       await _controller.loadHtmlString(htmlContent);
       
     } catch (e) {
@@ -154,7 +167,7 @@ class _MainAppState extends State<MainApp> {
       
     final result = await FilePicker.platform.pickFiles(       
       type: FileType.custom,       
-      allowedExtensions: ['fb2'],     
+      allowedExtensions: ['fb2', 'txt'],     
     );
       
     if (result == null) {       

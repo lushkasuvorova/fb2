@@ -24,19 +24,27 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-                <!-- Фильтр 2: Открытие FB2-файлов -->
+                <!-- Фильтр 2: Открытие txt-файлов -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-
                 <!-- Для открытия файлов из проводника -->
                 <data android:scheme="file" />
                 <data android:scheme="content" />
-
-                <!-- Объявляем, что умеем работать с FB2 -->
-                <data android:mimeType="*/*" />
-                <data android:pathPattern=".*\\.fb2" />
+                <data android:mimeType="text/*" />
+            </intent-filter>
+            <!-- Фильтр 3: Открытие FB2 и файлов без расширения из мессенджеров -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/x-fictionbook+xml" />
+                <data android:mimeType="application/fb2" />
+                <data android:mimeType="application/xml" />
+                <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
